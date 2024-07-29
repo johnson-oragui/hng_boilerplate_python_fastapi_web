@@ -182,7 +182,6 @@ class GoogleOauthServices(Service):
         try:
             user_info: dict = google_response.get("userinfo")
             new_user = User(
-                username=user_info.get("email"),
                 first_name=user_info.get("given_name"),
                 last_name=user_info.get("family_name"),
                 email=user_info.get("email")
