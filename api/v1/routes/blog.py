@@ -5,6 +5,7 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 
 from api.db.database import get_db
+from api.utils.pagination import paginated_response
 from api.utils.success_response import success_response
 from api.v1.models.user import User
 from api.v1.models.blog import Blog, BlogDislike
