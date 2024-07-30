@@ -9,7 +9,8 @@ from api.utils.success_response import success_response
 from api.v1.models.user import User
 from api.v1.models.blog import Blog, BlogDislike
 from api.v1.schemas.blog import (BlogCreate, BlogPostResponse, BlogRequest,
-                                BlogUpdateResponseModel, BlogDislikeResponse)
+                                BlogUpdateResponseModel, BlogDislikeResponse,
+                                AllBlogsResponse)
 from api.v1.services.blog import BlogService
 from api.v1.services.user import user_service
 from api.v1.schemas.comment import CommentCreate, CommentSuccessResponse
@@ -31,17 +32,20 @@ def create_blog(blog: BlogCreate, db: Session = Depends(get_db), current_user: U
         data = jsonable_encoder(new_blogpost)
     )
 
-@blog.get("/", response_model=success_response)
+@blog.get("/", response_model=AllBlogsResponse)
 def get_all_blogs(db: Session = Depends(get_db)):
-
+    """
+    Retrieves all blogs.
+    Args:
+        db: database Session
+    Returns:
+        blog_response: Response containing all blogs if Any
+    """
     blog_service = BlogService(db)
-    blogs = blog_service.fetch_all()
+    blog_response = blog_service.fetch_all()
 
-    return success_response(
-        message = "Blogs fetched successfully!",
-        status_code = 200,
-        data = [blog.to_dict() for blog in blogs]
-    )
+    return blog_response
+
 
 
 @blog.get("/{id}", response_model=BlogPostResponse)
