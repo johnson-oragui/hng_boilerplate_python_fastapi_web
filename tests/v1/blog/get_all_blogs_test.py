@@ -42,7 +42,9 @@ def test_get_all_blogs_empty(client, db_session_mock):
 
     # Assert the response
     assert response.status_code == 200
-    assert response.json().get('data') == None
+    assert response.json()['message'] == "No Blog has been created currently!"
+    assert response.json()['status'] == 'success'
+    assert response.json().get('data') == []
 
 def test_get_all_blogs_with_data(client, db_session_mock):
     blog_id = str(uuid7())
