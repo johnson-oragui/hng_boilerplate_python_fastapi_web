@@ -7,10 +7,10 @@ from api.core.base.services import Service
 from api.utils.db_validators import check_model_existence
 from api.v1.models.blog import Blog, BlogDislike
 from api.v1.models.user import User
-from api.v1.schemas.blog import BlogCreate
+from api.v1.schemas.blog import BlogCreate, BlogResponse, AllBlogsResponse
 
 
-class BlogService:
+class BlogService(Service):
     '''Blog service functionality'''
 
     def __init__(self, db: Session):
@@ -29,8 +29,24 @@ class BlogService:
         '''Fetch all blog posts'''
 
         blogs = self.db.query(Blog).filter(Blog.is_deleted == False).all()
-        return blogs
+        return self.generate_response(blogs)
     
+    def generate_response(self, blogs: list):
+        """
+        Generate a response using the retrieved blogs
+        """
+        # if no blog has been created yet
+        if len(blogs) == 0:
+            return AllBlogsResponse(message="No Blog has been created currently!",
+                                    status_code=200,
+                                    status='success',
+                                    data=[])
+        blogs_response = [BlogResponse.model_validate(blog, from_attributes=True) for blog in blogs]
+        return AllBlogsResponse(message="Blogs fetched successfully!",
+                                status_code=200,
+                                status='success',
+                                data=blogs_response)
+
     def fetch(self, blog_id: str):
         '''Fetch a blog post by its ID'''
         
