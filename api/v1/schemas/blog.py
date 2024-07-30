@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class BlogCreate(BaseModel):
@@ -22,7 +22,6 @@ class BlogUpdateResponseModel(BaseModel):
     message: str
     data: dict
 
-
 class BlogResponse(BaseModel):
     id: str
     author_id: str
@@ -35,9 +34,13 @@ class BlogResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
+class AllBlogsResponse(BaseModel):
+    message: str
+    status: str
+    status_code: int
+    data: List[BlogResponse] | List[None]
 
 class BlogPostResponse(BaseModel):
 
