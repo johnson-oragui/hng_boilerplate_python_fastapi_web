@@ -6,6 +6,7 @@ from fastapi import (BackgroundTasks, Depends,
                      status, APIRouter,
                      Response, Request)
 from fastapi.encoders import jsonable_encoder
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import Annotated
 
@@ -20,7 +21,10 @@ from api.v1.schemas.token import TokenRequest
 from api.v1.schemas.user import (UserCreate,
                                  MagicLinkRequest,
                                  ChangePasswordSchema,
-                                 AuthMeResponse)
+                                 AuthMeResponse,
+                                 AccessToken,
+                                 DataResponse,
+                                 LoginResponse)
 from api.v1.services.organisation import organisation_service
 from api.v1.schemas.organisation import CreateUpdateOrganisation
 from api.db.database import get_db
@@ -137,7 +141,7 @@ def register_as_super_admin(request: Request, user: UserCreate, db: Session = De
     return response
 
 
-@auth.post("/login", status_code=status.HTTP_200_OK, response_model=auth_response)
+@auth.post("/login", status_code=status.HTTP_200_OK, response_model=LoginResponse)
 @limiter.limit("1000/minute")  # Limit to 1000 requests per minute per IP
 def login(request: Request, login_request: LoginRequest, db: Session = Depends(get_db)):
     """Endpoint to log in a user"""
@@ -148,34 +152,46 @@ def login(request: Request, login_request: LoginRequest, db: Session = Depends(g
     )
     user_organizations = organisation_service.retrieve_user_organizations(user, db)
 
+    profile = profile_service.fetch_by_user_id(db, user.id)
+
     # Generate access and refresh tokens
     access_token = user_service.create_access_token(user_id=user.id)
     refresh_token = user_service.create_refresh_token(user_id=user.id)
 
-    response = auth_response(
-        status_code=200,
-        message='Login successful',
-        access_token=access_token,
-        data={
-            'user': jsonable_encoder(
-                user,
-                exclude=['password', 'is_deleted', 'is_verified', 'updated_at']
-            ),
-            'organisations': user_organizations
-        }
+    data_response = DataResponse(
+        user=UserData2.model_validate(user, from_attributes=True),
+        organisations=user_organizations,
+        profile=ProfileData.model_validate(profile, from_attributes=True)
     )
-
-    # Add refresh token to cookies
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        expires=timedelta(days=30),
-        httponly=True,
-        secure=True,
-        samesite="none",
+    response = LoginResponse(
+        message='Login successful',
+        status_code=200,
+        access_token=access_token,
+        refresh_token=refresh_token,
+        data=data_response
     )
 
     return response
+
+@auth.post("/token",
+           status_code=status.HTTP_200_OK,
+           response_model=AccessToken,
+           include_in_schema=False)
+def openapi_token(request_form: OAuth2PasswordRequestForm = Depends(),
+                  db: Session = Depends(get_db)):
+    """
+    Endpoint to log in a user for openapi.
+    
+    Args:
+        request_form (object): authentication form with username and password fields
+        db (object): database session object.
+    Return:
+        access_token (string): access_token for authentication.
+    """
+    # Authenticate the user
+    return user_service.openapi_authentication(
+        db=db, email=request_form.username, password=request_form.password
+    )
 
 
 @auth.post("/logout", status_code=status.HTTP_200_OK)
@@ -398,12 +414,13 @@ def get_current_user_details(
     """
     profile = profile_service.fetch_by_user_id(db, current_user.id)
     organisation = organisation_service.retrieve_user_organizations(current_user, db)
+    data_response = DataResponse(
+        user=UserData2.model_validate(current_user, from_attributes=True),
+        organisations=organisation,
+        profile=ProfileData.model_validate(profile, from_attributes=True)
+    )
     return AuthMeResponse(
         message='User details retrieved successfully',
         status_code=200,
-        data={
-            'user': UserData2.model_validate(current_user, from_attributes=True),
-            'organisations': organisation,
-            'profile': ProfileData.model_validate(profile, from_attributes=True)
-        }
+        data=data_response
     )
