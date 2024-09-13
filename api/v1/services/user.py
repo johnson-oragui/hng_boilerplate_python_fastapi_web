@@ -25,7 +25,7 @@ from api.v1.schemas import token
 from api.v1.services.notification_settings import notification_setting_service
 from api.v1.services.newsletter import NewsletterService, EmailSchema
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
@@ -331,6 +331,26 @@ class UserService(Service):
             raise HTTPException(status_code=400, detail="Invalid user credentials")
 
         return user
+
+    def openapi_authentication(self, db: Session, email: str, password: str) -> str:
+        """
+        Logs in a user for the openapi usage.
+
+        Args:
+            db (object): database session object
+            email (string): the email of the user.
+            password (str): the password of the user
+        Returns:
+            access_token (str): the access token after authentication 
+        """
+        user_exists = self.authenticate_user(db=db, email=email, password=password)
+
+        access_token = self.create_access_token(user_exists.id)
+
+        return user.AccessToken(
+            access_token=access_token
+        )
+        
 
     def perform_user_check(self, user: User):
         """This checks if a user is active and verified and not a deleted user"""
