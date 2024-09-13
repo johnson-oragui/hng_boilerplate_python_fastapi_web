@@ -8,7 +8,8 @@ from typing import (Optional, Union,
 from pydantic import (BaseModel, EmailStr,
                       field_validator, ConfigDict,
                       StringConstraints,
-                      model_validator)
+                      model_validator,
+                      Field)
 
 def validate_mx_record(domain: str):
     """
@@ -119,13 +120,27 @@ class UserData2(BaseModel):
     """
     Schema for users to be returned to superadmin
     """
-    id: str
-    email: EmailStr
-    first_name: str
-    last_name: str
-    is_active: bool
-    is_deleted: bool
-    is_verified: bool
+    id: str = Field(
+        examples=['066e421b-8463-7d54-8000-eb88f1bd373e']
+    )
+    email: EmailStr = Field(
+        examples=['JohnDoe@example.com']
+    )
+    first_name: str = Field(
+        examples=['John']
+    )
+    last_name: str = Field(
+        examples=['Doe']
+    )
+    is_active: bool = Field(
+        examples=[True]
+    )
+    is_deleted: bool = Field(
+        examples=[False]
+    )
+    is_verified: bool = Field(
+        examples=[True]
+    )
     created_at: datetime
     updated_at: datetime
 
@@ -135,35 +150,79 @@ class ProfileData(BaseModel):
     """
     Pydantic model for a profile.
     """
-    id: str
+    id: str = Field(
+        examples=['066e421b-8463-7d54-8000-eb88faasxsdc']
+    )
     created_at: datetime
-    pronouns: Optional[str] = None
-    job_title: Optional[str] = None
-    department: Optional[str] = None
-    social: Optional[str] = None
-    bio: Optional[str] = None
-    phone_number: Optional[str] = None
-    avatar_url: Optional[str] = None
-    recovery_email: Optional[EmailStr]
+    pronouns: Optional[str] = Field(
+        default=None,
+        examples=['he/him']
+    )
+    job_title: Optional[str] = Field(
+        examples=['Engineer']
+    )
+    department: Optional[str] = Field(
+        examples=['Devops']
+    )
+    social: Optional[str] = Field(
+        examples=['https://x.com/john_doe']
+    )
+    bio: Optional[str] = Field(
+        examples=['I am good']
+    )
+    phone_number: Optional[str] = Field(
+        examples=['+2336543456566']
+    )
+    avatar_url: Optional[str] = Field(
+        examples=['https://example.com/some-path']
+    )
+    recovery_email: Optional[EmailStr] = Field(
+        examples=['johndon2@example.com']
+    )
 
     model_config = ConfigDict(from_attributes=True)
 
 class OrganisationData(BaseModel):
     """Base organisation schema"""
-    id: str
+    id: str = Field(
+        examples=['066e421b-8463-7d54-8000-qw234e4r5675']
+    )
     created_at: datetime
     updated_at: datetime
-    name: str
-    email: Optional[EmailStr] = None
-    industry: Optional[str] = None
-    user_role: List[str]
-    type: Optional[str] = None
-    country: Optional[str] = None
-    state: Optional[str] = None
-    address: Optional[str] = None
-    description: Optional[str] = None
+    name: str = Field(
+        examples=["johndoe@example.com's Organisation" ]
+    )
+    email: Optional[EmailStr] = Field(
+        examples=['johndoe@example.com']
+    )
+    industry: Optional[str] = Field(
+        examples=['Tech']
+    )
+    user_role: List[str] = Field(
+        examples=['["guest", "admin", "user"]']
+    )
+    type: Optional[str] = Field(
+        examples=['']
+    )
+    country: Optional[str] = Field(
+        examples=['Estonia']
+    )
+    state: Optional[str] = Field(
+        examples=['some state']
+    )
+    address: Optional[str] = Field(
+        examples=['1010 wayne street']
+    )
+    description: Optional[str] = Field(
+        examples=['Good Organisation']
+    )
 
     model_config = ConfigDict(from_attributes=True)
+
+class DataResponse(BaseModel):
+    user: UserData2
+    organisations: List[OrganisationData]
+    profile: ProfileData
 
 class AuthMeResponse(BaseModel):
     """
@@ -171,8 +230,7 @@ class AuthMeResponse(BaseModel):
     """
     message: str
     status_code: int
-    data: Dict[Literal["user", "organisations", "profile"],
-               Union[UserData2, List[OrganisationData], ProfileData]]
+    data: DataResponse
 
 
 class AllUsersResponse(BaseModel):
@@ -248,6 +306,23 @@ class LoginRequest(BaseModel):
         
         return values
 
+class LoginResponse(BaseModel):
+    """
+    Auth response
+    """
+    message: str = Field(
+        examples=['Login successful']
+    )
+    status_code: int = Field(
+        examples=[200]
+    )
+    access_token: str = Field(
+        examples=['12xdc34g54g.43t6yhw5ff34.43fqef42e...']
+    )
+    refresh_token: str = Field(
+        examples=['12xdc34g54g.43t6yhw5ff34.43fqef42e...']
+    )
+    data: DataResponse
 
 class EmailRequest(BaseModel):
     email: EmailStr
@@ -405,3 +480,7 @@ class UserRoleSchema(BaseModel):
         if value not in ["admin", "user", "guest", "owner"]:
             raise ValueError("Role has to be one of admin, guest, user, or owner")
         return value
+
+class AccessToken(BaseModel):
+    access_token: str
+    token_type: str = Field(default="bearer")
